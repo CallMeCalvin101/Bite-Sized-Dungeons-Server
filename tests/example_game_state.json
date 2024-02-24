@@ -1,0 +1,52 @@
+{
+    "players": [
+        {
+            "maxHealth": 100,
+            "health": 100,
+            "attack": 5,
+            "lastAction": 1708767248108,
+            "cooldownExpires": 1708767250108,
+            "skills": [
+                {
+                    "type": "Draining Blow",
+                    "lastUsed": 1708767248108,
+                    "cooldownExpires": 1708767263108
+                },
+                {
+                    "type": "Rampage",
+                    "lastUsed": 1708767235108,
+                    "cooldownExpires": 1708767260108
+                }
+            ]
+        },
+        {
+            "maxHealth": 100,
+            "health": 90,
+            "attack": 5,
+            "lastAction": 1708767238108,
+            "cooldownExpires": 1708767240108,
+            "skills": [
+                {
+                    "type": "Draining Blow",
+                    "lastUsed": 1708767238108,
+                    "cooldownExpires": 1708767253108
+                },
+                {
+                    "type": "Rampage",
+                    "lastUsed": 1708767235108,
+                    "cooldownExpires": 1708767250108
+                }
+            ]
+        }
+    ],
+    "enemies": [
+        {
+            "maxHealth": 5000,
+            "health": 3800,
+            "attack": 10,
+            "lastAction": 1708767247108,
+            "cooldownExpires": 1708767252108
+        }
+    ],
+    "lastModified": 1708767248108
+}
