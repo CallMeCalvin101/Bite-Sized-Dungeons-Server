@@ -1,4 +1,7 @@
 {
     "type": 2,
+    "sourceType": 0,
+    "source": 1,
+    "targetType": 1,
     "target": 3
 }
