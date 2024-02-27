@@ -1,61 +1,61 @@
+/** Data model for validating and modifying game states. */
 export default class GameState {
-    players = [];
-    enemies = [];
-    lastModified = 0;
-
     GameState() {
-        this.enemies.push({
-            maxHealth: 5000,
-            health: 5000,
-            attack: 20,
-            lastAction: 0,
-            cooldownExpires: 0
-        });
-        this.lastModified = Date.now();
-        for (let i = 0; i < 4; i++)
-            this.players.push({
-                maxHealth: 100,
-                health: 100,
-                attack: 10,
-                lastAction: 0,
-                cooldownExpires: 0,
-                skills: [
-                    {
-                        type: "Draining Blow",
-                        lastUsed: 0,
-                        cooldownExpires: 0
-                    },
-                    {
-                        type: "Rampage",
-                        lastUsed: 0,
-                        cooldownExpires: 0
-                    }
-                ]
+        /* Consumers should not modify players and enemies directly.
+         * Use the convenience methods addPlayer and addEnemy instead. */
+        this.players = [];
+        this.enemies = [];
+        this.lastModified = 0;
+
+        /* TODO: If this ends up being a server-only implementation, consider
+         * adding the mutex locking functionality here */
+    }
+    validateEntity(entity) {
+        if (!Array.isArray(entity.skills)) entity.skills = [];
+        else {
+            // Validate and remove invalid skills
+            entity.skills = entity.skills.filter((skill) => {
+                try {
+                    return typeof skill.type == 'string'
+                        && typeof skill.skillCooldown == 'number'
+                        && typeof skill.cooldown == 'number';
+                } catch {
+                    return false;
+                }
             });
-    }
-    getEntity(type, index) {
-        if (type == 0) {
-            return this.players[index];
-        }
-        if (type == 1) {
-            return this.enemies[index];
-        }
-    }
-    /** Change an entity's properties using the given options. */
-    changeEntity(type, index, options) {
-        let entity;
-        if (type == 0) {
-            entity = this.players[index];
-        } else if (type == 1) {
-            entity = this.enemies[index];
-        } else {
-            // Invalid input
-            return;
+            entity.skills = entity.skills.map((skill) => {
+                skill.lastUsed = 0;
+                skill.cooldownExpires = 0;
+            });
         }
 
-        if (options.changeHealth !== undefined &&
-            Number.isInteger(options.changeHealth)) {
-            entity.health += options.changeHealth;
-        }
+        // Validate and fill required values
+        if (!entity.attack || typeof entity.attack !== 'number')
+            entity.attack = 0;
+        if (!entity.maxHealth || typeof entity.maxHealth !== 'number')
+            entity.maxHealth == 0;
+        if (!entity.health || typeof entity.maxHealth !== 'number')
+            entity.health == 0;
+
+        return entity;
+    }
+    addPlayer(player) {
+        this.players.push(this.validateEntity(player));
+    }
+    addEnemy(enemy) {
+        this.enemies.push(this.validateEntity(enemy));
+    }
+    clone() {
+        let newState = new GameState();
+        newState.players = [ ...this.players ];
+        newState.enemies = [ ...this.enemies ];
+        return newState;
+    }
+    /** Convenience function to get an entity and validate type and index */
+    getEntity(type, index) {
+        if (type == 'player' && this.players.length > index)
+            return this.players[index];
+        if (type == 'enemy' && this.enemies.length > index)
+            return this.enemies[index];
     }
 }
