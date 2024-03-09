@@ -11,6 +11,10 @@ class Entity {
     return this.health;
   }
 
+  isAlive() {
+    return this.health > 0;
+  }
+
   damage(n) {
     this.health -= n;
   }
@@ -23,6 +27,10 @@ class Entity {
     if (!this.statuses.includes(status)) {
       this.statuses.push(status);
     }
+  }
+
+  hasStatus(status) {
+    return this.statuses.includes(status);
   }
 
   setNewTimestamp(timestamp) {
