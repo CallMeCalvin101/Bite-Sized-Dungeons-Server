@@ -78,6 +78,11 @@ export class Player extends Entity {
       }
     }
   }
+
+  resetActionCD(action) {
+    const index = this.skills.indexOf(action.name);
+    this.skillCD[index] = action.cooldown;
+  }
 }
 
 // Enemy Class
