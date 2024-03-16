@@ -7,7 +7,10 @@ class Room {
     gameState;
     gameStateMutex;
 
-    connectedClients = [];
+    gameIsActive;
+
+    // Maps Client ID to Socket
+    connectedClients = new Map();
     clientsMutex;
 
     players = [];
@@ -20,11 +23,29 @@ class Room {
         this.roomID = id;
         this.gameStateManager = gameStateManager;
         this.clientsMutex = new Mutex();
+        this.gameIsActive = false;
         // max players
         // fill list with null values for players
         for (let i = 0; i < maxPlayers; i++) {
             this.players.push(null);
         }
+    }
+    addClient(socket, sessionID, client) {
+        this.connectedClients.set(sessionID, socket);
+        const playersIndex = this.players.length;
+        if (playersIndex < 4) {
+            this.players.push(null);
+        }
+        client.socket.on('disconnect', () => {
+            this.clientsMutex.release();
+            this.connectedClients.delete(sessionID);
+        })
+        client.socket.once('leaveRoom',() => {
+            if (!this.gameIsActive) {
+                this.players[playersIndex] = null;
+            }
+        })
+        
     }
     joinRoom(socket, sessionID) {
         // don't forget to handle when these arguments aren't provided!
