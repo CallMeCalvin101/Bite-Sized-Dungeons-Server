@@ -7,5 +7,4 @@
 // Hook for handling reconnect
 
 export const connect = (sessionID) => {
-    if 
 }

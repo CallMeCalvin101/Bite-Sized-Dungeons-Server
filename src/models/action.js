@@ -4,6 +4,8 @@
  *  GameState or not. This only validates the base format of the action. */
 export default class Action {
     // TODO: Method for exporting into JSON-safe format for transmission
+    toJSON() {
+    }
 
     Action(type, source, target) {
         this.type = typeof type == 'string' ? type : 'none' ;

@@ -1,4 +1,5 @@
 import { Mutex } from 'async-mutex';
+import Action from './models/action';
 
 class Room {
     roomID;
@@ -32,19 +33,24 @@ class Room {
             this.players.push(null);
         }
     }
-    joinRoom(client, socket, sessionID) {
-        this.connectedClients.set(sessionID, socket);
-        const playersIndex = this.players.length;
-        if (playersIndex < 4) {
-            this.players.push(null);
-        }
-        socket.leaveFromCurrentRoom = (() => {
+
+    joinRoom(client, sessionID) {
+        client.join(this.roomID);
+        this.connectedClients.set(sessionID, client);
+        this.setClientHooks(sessionID);
+        socket.to(this.roomID).emit('clientJoined', sessionID);
+    }
+
+    setClientHooks(sessionID) {
+        const client = this.connectedClients.get(sessionID);
+
+        client.leaveFromCurrentRoom = (() => {
             this.connectedClients.delete(sessionID);
         }).bind(this);
-        client.socket.on('disconnect', client.leaveFromCurrentRoom);
-        client.socket.once('leaveRoom', client.leaveFromCurrentRoom);
-        
+        client.on('disconnect', client.leaveFromCurrentRoom);
+        client.once('leaveRoom', client.leaveFromCurrentRoom);
     }
+
     joinPlayer(sessionID) {
         // don't forget to handle when these arguments aren't provided!
         
@@ -55,18 +61,21 @@ class Room {
         this.players[i] = { sessionID, ready: false };
 
         this.setPlayerHooks(sessionID);
+
+        // Let clients know somebody joined
+        this.socket.to(this.roomID).emit('playerJoined', i, sessionID);
     }
 
     setPlayerHooks(sessionID) {
         const client = this.connectedClients.get(sessionID);
 
-        const leaveRoom = (() => {
+        client.leaveFromCurrentRoom = (() => {
             this.connectedClients.delete(sessionID);
             if (this.gameIsActive) return;
             this.players[i] = null;
             this.numPlayers--;
         }).bind(this);
-        client.leaveAsClient = leaveRoom;
+        client.off('leaveRoom', client.leaveFromCurrentRoom);
 
         const readyFunc = (() => {
             if (this.players[i].ready) return;
@@ -75,7 +84,7 @@ class Room {
             if (this.readyPlayers == this.maxPlayers)
                 this.startGame();
         }).bind(this);
-        client.socket.on('ready', readyFunc);
+        client.on('ready', readyFunc);
     }
 
     startGame() {
@@ -83,19 +92,33 @@ class Room {
         this.gameStateMutex = new Mutex();
         this.gameState = this.gameStateManager.createDefaultGameState();
 
+        for (let i in this.players)
+            this.setGameHooks(this.players[i].sessionID, i);
+
         socket.to(this.roomID).emit('startGame', this.gameState);
     }
 
     setGameHooks(sessionID, playerIndex) {
+        const client = this.connectedClients.get(sessionID);
+        client.on('action', (async (/* what the client emits to us */) => {
+            let action = await this.gameStateMutex.runExclusive(async () => {
+                // Can you make it update the action here?
+                // this.gameStateManager.processAction(something);
+                // Return whatever needs to be sent to clients
+            });
+            // Then emit it like this
+            this.socket.to(this.roomID).emit('action', action);
+        }).bind(this));
     }
 
-    reconnect(sessionID) {
+    reconnect(client, sessionID) {
         // On reconnect, add the appropriate hooks back (this only applies when a game is in progress)
         if (!this.gameState.inProgress) return;
-        const i = this.players.findIndex();
-    }
-
-    createActionHandler() {
-        // Create a hook specific to a player to be bound to their socket that handles incoming Actions
+        const i = this.players.findIndex((p) => p.sessionID == sessionID);
+        if (i == -1) return;
+        this.players[i].socket = client;
+        this.setClientHooks(sessionID);
+        this.setPlayerHooks(sessionID);
+        this.setGameHooks(sessionID);
     }
 }
