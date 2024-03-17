@@ -7,95 +7,94 @@ class Room {
     gameState;
     gameStateMutex;
 
-    gameIsActive;
+    gameIsActive = false;
 
     // Maps Client ID to Socket
     connectedClients = new Map();
-    clientsMutex;
 
     players = [];
+    numPlayers;
+    maxPlayers;
+    numPlayers = 0;
     readyPlayers = 0;
+    
+    socket;
 
-    Room(id, maxPlayers, gameStateManager) {
+    Room(id, maxPlayers, gameStateManager, socket) {
         // don't forget to handle when these arguments aren't provided!
-        // GameState and mutex will be initialized in ready()
         // Error without crashing application, make an invalid room that obviously won't work + console log
         this.roomID = id;
         this.gameStateManager = gameStateManager;
-        this.clientsMutex = new Mutex();
-        this.gameIsActive = false;
+        this.socket = socket;
         // max players
         // fill list with null values for players
         for (let i = 0; i < maxPlayers; i++) {
             this.players.push(null);
         }
     }
-    addClient(socket, sessionID, client) {
+    joinRoom(client, socket, sessionID) {
         this.connectedClients.set(sessionID, socket);
         const playersIndex = this.players.length;
         if (playersIndex < 4) {
             this.players.push(null);
         }
-        client.socket.on('disconnect', () => {
-            this.clientsMutex.release();
+        socket.leaveFromCurrentRoom = (() => {
             this.connectedClients.delete(sessionID);
-        })
-        client.socket.once('leaveRoom',() => {
-            if (!this.gameIsActive) {
-                this.players[playersIndex] = null;
-            }
-        })
+        }).bind(this);
+        client.socket.on('disconnect', client.leaveFromCurrentRoom);
+        client.socket.once('leaveRoom', client.leaveFromCurrentRoom);
         
     }
-    joinRoom(socket, sessionID) {
-        // don't forget to handle when these arguments aren't provided!
-        // Just add to connectedClients and bind appropriate socket handlers
-        this.clientsMutex.
-        this.connectedClients.push({ socket, sessionID });
-    }
-    // client is a { socket, sessionID } object, see joinRoom()
-    joinPlayer(client) {
+    joinPlayer(sessionID) {
         // don't forget to handle when these arguments aren't provided!
         
         const i = players.findIndex((p) => p == null);
+
         // Will do nothing if there are no spots left
         if (i == -1) return;
+        this.players[i] = { sessionID, ready: false };
 
-        this.players[i] = { ...client, ready: false };
-        const readyFunc = () => {
+        this.setPlayerHooks(sessionID);
+    }
+
+    setPlayerHooks(sessionID) {
+        const client = this.connectedClients.get(sessionID);
+
+        const leaveRoom = (() => {
+            this.connectedClients.delete(sessionID);
+            if (this.gameIsActive) return;
+            this.players[i] = null;
+            this.numPlayers--;
+        }).bind(this);
+        client.leaveAsClient = leaveRoom;
+
+        const readyFunc = (() => {
             if (this.players[i].ready) return;
             this.players[i].ready = true;
-            this.readyPlayers++;  
-            if (this.readyPlayers < players.length) return;
-            if (this.readyPlayers > players.length)
-                console.log("Warning: room " + roomID + "has too many ready players?");
-            this.ready();
-        };
-        readyFunc.bind(this);
+            this.readyPlayers++;
+            if (this.readyPlayers == this.maxPlayers)
+                this.startGame();
+        }).bind(this);
         client.socket.on('ready', readyFunc);
-        // will not do anything if 
     }
-    leaveRoom(sessionID) {
-        // don't forget to handle when these arguments aren't provided!
-        // Delete this room if the last person left, maybe call a function provided by constructor?
-        const i = players.findIndex((p) => p.sessionID == sessionID);
 
+    startGame() {
+        this.gameIsActive = true;
+        this.gameStateMutex = new Mutex();
+        this.gameState = this.gameStateManager.createDefaultGameState();
+
+        socket.to(this.roomID).emit('startGame', this.gameState);
     }
-    ready(player) {
-        // Start the game. Call this when all players are ready
-        // At this point, connected clients in the room who aren't a player should know they are spectators
-        // We will set up action listeners ONLY for player clients
-        for (let player in this.players) {
-            players.socket 
-        }
-        // Also set up loop for AIActions
+
+    setGameHooks(sessionID, playerIndex) {
     }
-    reconnect() {
+
+    reconnect(sessionID) {
         // On reconnect, add the appropriate hooks back (this only applies when a game is in progress)
-        if (this.gameState.inProgress) {
-            // do stuff
-        }
+        if (!this.gameState.inProgress) return;
+        const i = this.players.findIndex();
     }
+
     createActionHandler() {
         // Create a hook specific to a player to be bound to their socket that handles incoming Actions
     }

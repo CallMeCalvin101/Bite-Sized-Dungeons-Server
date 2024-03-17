@@ -58,4 +58,11 @@ export default class GameState {
         if (type == 'enemy' && this.enemies.length > index)
             return this.enemies[index];
     }
+    toJSON() {
+        return {
+            players: this.players,
+            enemies: this.enemies,
+            lastModified: this.lastModified
+        };
+    }
 }
