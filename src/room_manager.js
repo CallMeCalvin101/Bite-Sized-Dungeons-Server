@@ -1,7 +1,8 @@
 import { Mutex } from 'async-mutex';
-import Action from './models/action';
+import Action from './models/action.js';
+import gameStateManager from './game_state_manager.js';
 
-class Room {
+export default class Room {
     roomID;
 
     gameStateManager;
@@ -21,7 +22,7 @@ class Room {
     
     socket;
 
-    Room(id, maxPlayers, gameStateManager, socket) {
+    constructor(id, maxPlayers, gameStateManager, socket) {
         // don't forget to handle when these arguments aren't provided!
         // Error without crashing application, make an invalid room that obviously won't work + console log
         this.roomID = id;

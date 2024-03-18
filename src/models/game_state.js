@@ -1,6 +1,6 @@
 /** Data model for validating and modifying game states. */
 export default class GameState {
-    GameState() {
+    constructor() {
         /* Consumers should not modify players and enemies directly.
          * Use the convenience methods addPlayer and addEnemy instead. */
         this.players = [];
@@ -10,6 +10,7 @@ export default class GameState {
         /* TODO: If this ends up being a server-only implementation, consider
          * adding the mutex locking functionality here */
     }
+    
     validateEntity(entity) {
         if (!Array.isArray(entity.skills)) entity.skills = [];
         else {
@@ -58,6 +59,7 @@ export default class GameState {
         if (type == 'enemy' && this.enemies.length > index)
             return this.enemies[index];
     }
+
     toJSON() {
         return {
             players: this.players,
